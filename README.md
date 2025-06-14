@@ -1,9 +1,3 @@
----
-editor_options: 
-  markdown: 
-    wrap: 72
----
-
 # Exploring water-ecosystem dynamics at flux sites
 
 This repo contains exploratory analyses into water-ecosystem dynamics
