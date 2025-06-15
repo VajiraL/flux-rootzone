@@ -1,0 +1,177 @@
+---
+title: "notes"
+author: "Vajira"
+date: "2025-06-03"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r include = FALSE}
+library(dplyr)
+library(ggplot2)
+library(mapview)
+library(leaflet)
+library(leafpop)
+library(sf)
+
+sites <- read.csv('D:/src/flux-rootzone/data/fdk_site_info.csv') |>
+  rename(
+    'koeppen' = 'koeppen_code',
+    'start' = 'year_start',
+    'end' = 'year_end',
+    'IGBP' = 'igbp_land_use'
+  )
+```
+
+# Ecosystem-water interactions at flux sites
+
+We use [FluxDataKit](https://doi.org/10.5281/zenodo.10885933) which gives a compilation of flux data, meterological data and remote sensing vegetation data (MODIS LAI and fAPAR) to explore ecosystem-water dynamics with a focus on green water storage capacities (Root zone water storage capacity). Data reference [Ukkola et al, (2022)](https://doi.org/10.5194/essd-14-449-2022).
+
+## Data Coverage
+
+```{r echo = FALSE}
+leaflet(sites) |>
+  addProviderTiles(providers$Esri.WorldImagery) |>
+  addMarkers(~lon, ~lat, label = ~sitename, popup = popupTable(sites))
+```
+
+The dataset is generated compiling multiple sources of flux data.
+
+Coverage varies across Depending on the source of the data the included land cover types vary. For example Oneflux is dominated by mostly cropland sites. Land cover labels are based on MODIS.LC classes are IGBP.[Reference for IGBP land cover types.](https://www.ceom.ou.edu/static/docs/IGBP.pdf)
+
+```{r echo = FALSE}
+# plot the number of sites by IGBP LC type as a bar chart
+sites %>%
+  group_by(IGBP) %>%
+  summarise(n = n()) %>%
+  ggplot(aes(x = reorder(IGBP, -n), y = n)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  labs(x = "IGBP Land Cover Type", y = "Number of Sites", title = "Number of Sites by IGBP Land Cover Type") +
+  theme_minimal()
+```
+
+Coverage varies by climate
+```{r echo = FALSE}
+# plot the number of sites by Koeppen climate type as a bar chart
+sites %>%
+  group_by(koeppen) %>%
+  summarise(n = n()) %>%
+  ggplot(aes(x = reorder(koeppen, -n), y = n)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  labs(x = "Koeppen Climate Type", y = "Number of Sites", title = "Number of Sites by Koeppen Climate Type") +
+  theme_minimal()
+```
+## Root zone water storage capacity
+Root zone water storage capacity at the sites referred from [Stocker et al, (2023)](https://www.nature.com/articles/s41561-023-01125-2) included as site metadata. 
+
+```{r echo = FALSE}
+# plot the distribution of root zone water storage capacity in the sites as a histogram
+sites %>%
+  ggplot(aes(x = whc)) +
+  geom_histogram(binwidth = 25, fill = "blue", color = "black") +
+  labs(x = "Root Zone Water Storage Capacity (mm)", y = "Frequency", title = "Distribution of Root Zone Water Storage Capacity") +
+  theme_minimal()
+```
+
+```{r echo = FALSE}
+# Load required libraries
+library(tidyverse)
+library(ggplot2)
+library(ggrepel)
+library(sf)
+library(rnaturalearth)
+library(rnaturalearthdata)
+
+# Load site data from FluxDataKit
+# Assuming fdk_site_fullyearsequence is already loaded in your environment
+# If not, you would load it with:
+# load("path/to/fdk_site_fullyearsequence.rda")
+
+# If we need to recreate it from the CSV (as shown in the repo):
+site_data <- read_csv("D:/src/flux-rootzone/data/fdk_site_info.csv")
+
+# Alternatively, if you have the package installed:
+# data("fdk_site_fullyearsequence", package = "FluxDataKit")
+# site_data <- fdk_site_fullyearsequence
+
+# Create Budyko curve function
+budyko_curve <- function(ai) {
+  # Original Budyko (1974) formulation
+  sqrt(ai * tanh(1/ai) * (1 - exp(-ai)))
+}
+
+# Prepare data for plotting
+plot_data <- site_data %>%
+  filter(!is.na(p_over_pet)) %>%  # Remove sites with missing P/PET
+  mutate(budyko_et_ratio = budyko_curve(1/p_over_pet))  # Calculate Budyko ET ratio
+
+# Create Budyko plot
+budyko_plot <- ggplot() +
+  # Budyko curve
+  stat_function(fun = budyko_curve, 
+                aes(color = "Budyko Curve"), 
+                size = 1.2,
+                xlim = c(0.1, 10)) +
+  
+  # 1:1 line (energy limit)
+  geom_abline(slope = 1, intercept = 0, 
+              linetype = "dashed", 
+              color = "gray50") +
+  
+  # Horizontal line at 1 (water limit)
+  geom_hline(yintercept = 1, 
+             linetype = "dashed", 
+             color = "gray50") +
+  
+  # Site points
+  geom_point(data = plot_data,
+             aes(x = 1/p_over_pet, 
+                 y = 1,  # Assuming ET/P = 1 for simplicity - adjust if you have actual ET data
+                 fill = igbp_land_use),  # Color by IGBP class
+             size = 3, 
+             shape = 21,
+             alpha = 0.8) +
+  
+  # Site labels (for a subset to avoid overcrowding)
+  geom_text_repel(data = plot_data %>% 
+                    filter(p_over_pet < 0.5 | p_over_pet > 2),  # Label extreme sites
+                  aes(x = 1/p_over_pet, 
+                      y = 1,
+                      label = sitename),
+                  size = 3,
+                  box.padding = 0.5,
+                  max.overlaps = Inf) +
+  
+  # Aesthetics
+  scale_x_log10(limits = c(0.1, 10),
+                breaks = c(0.1, 0.2, 0.5, 1, 2, 5, 10),
+                labels = c("0.1", "0.2", "0.5", "1", "2", "5", "10")) +
+  scale_y_continuous(limits = c(0, 1.2),
+                     breaks = seq(0, 1.2, by = 0.2)) +
+  scale_color_manual(name = "",
+                     values = c("Budyko Curve" = "black")) +
+  scale_fill_discrete(name = "IGBP Class") +
+  
+  # Labels
+  labs(x = "Aridity Index (PET/P)",
+       y = "Evaporative Index (ET/P)",
+       title = "FluxDataKit Sites on Budyko Curve",
+       subtitle = "Showing relationship between aridity and evaporation") +
+  
+  # Theme
+  theme_bw(base_size = 12) +
+  theme(legend.position = "bottom",
+        panel.grid.minor = element_blank())
+
+# Print the plot
+print(budyko_plot)
+
+# Save the plot
+#ggsave("budyko_plot.png", budyko_plot, width = 10, height = 8, dpi = 300)
+
+```
