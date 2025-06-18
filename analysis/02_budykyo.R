@@ -11,7 +11,7 @@ site_sequence <- read_csv("data/fdk_site_fullyearsequence.csv")
 # 1. Define Priestley-Taylor function
 calculate_pet <- function(net_rad, tavg, pressure) {
   # Constants
-  PT_constant <- 1.26  # Priestley-Taylor coefficient
+  PT_constant <- 1.26  # Priestley-Taylor coefficient 1.26 for saturated/wet conditions. Lower for humid conditions and higher for arid conditions.
   latent_heat_vaporization <- 2.45  # MJ kg-1
   psychrometric_constant <- 0.066  # kPa °C-1
 
@@ -45,10 +45,10 @@ process_site_data <- function(site) {
     mutate(
       date = as.Date(TIMESTAMP),
       year = year(date),
-      pet = calculate_pet(NETRAD, TA_F, PA_F),
+      pet = calculate_pet(NETRAD, TA_F_MDS, PA),
       # Convert units if necessary (example - adjust based on your data)
       precip = P_F,  # mm/day
-      et = LE_F / 28.4  # Convert W m-2 to mm/day (1 W m-2 ≈ 0.035 mm/day)
+      et = LE_F_MDS / 28.4  # Convert W m-2 to mm/day (1 W m-2 ≈ 0.035 mm/day)
     )
 
   # Calculate annual sums

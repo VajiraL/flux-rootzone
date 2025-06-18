@@ -1,8 +1,10 @@
 # Load required libraries
 library(tidyverse)
-library(leaflet)
 library(plotly)
 library(viridis)
+library(leaflet)
+library(leaflet.extras)
+library(htmlwidgets)
 
 # 1. Read the data
 site_info <- read_csv("data/fdk_site_info.csv")
@@ -20,7 +22,7 @@ site_data <- site_info %>%
     # Create a factor for Koppen climate classes
     koeppen_code = factor(koeppen_code)
   )
-
+'''
 # 3. Plot 1: Interactive map of site locations
 map <- leaflet(site_data) %>%
   addProviderTiles(providers$Esri.WorldImagery) %>%
@@ -40,6 +42,45 @@ map <- leaflet(site_data) %>%
       "<b>Years:</b> ", year_start, "-", year_end
     ),
     label = ~sitename
+  ) %>%
+  addControl(
+    "Flux Site Locations",
+    position = "topright"
+  )
+
+# Save the map as HTML
+htmlwidgets::saveWidget(map, file = "analysis/flux_sites_map.html")
+'''
+map <- leaflet(site_data) %>%
+  addProviderTiles(providers$Esri.WorldImagery) %>%
+  addCircleMarkers(
+    lng = ~lon,
+    lat = ~lat,
+    radius = 5,
+    color = "blue",
+    fillOpacity = 0.8,
+    popup = ~paste(
+      "<b>Site:</b> ", sitename, "<br>",
+      "<b>Lat:</b> ", round(lat, 2), "<br>",
+      "<b>Lon:</b> ", round(lon, 2), "<br>",
+      "<b>Elevation:</b> ", round(elv), " m<br>",
+      "<b>Land Cover:</b> ", igbp_land_use, "<br>",
+      "<b>Climate:</b> ", koeppen_code, "<br>",
+      "<b>Years:</b> ", year_start, "-", year_end
+    ),
+    label = ~sitename,
+    group = "sites"  # Add group for search functionality
+  ) %>%
+  addSearchFeatures(
+    targetGroups = "sites",  # Search within the "sites" group
+    options = searchFeaturesOptions(
+      zoom = 15,  # Zoom level when site is found
+      openPopup = TRUE,  # Open popup when site is found
+      firstTipSubmit = TRUE,  # Submit search on first suggestion
+      autoCollapse = TRUE,  # Collapse search box after search
+      hideMarkerOnCollapse = FALSE,  # Keep marker visible
+      propertyName = "label"  # Search by the label property (sitename)
+    )
   ) %>%
   addControl(
     "Flux Site Locations",
