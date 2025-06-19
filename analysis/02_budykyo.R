@@ -7,8 +7,7 @@ library(ggrepel)
 source("R/pet_functions.R")
 
 # 0. Read the data
-site_info <- read_csv("data/fdk_site_info.csv")
-site_sequence <- read_csv("data/fdk_site_fullyearsequence.csv")
+site_info <- read_csv("data/fdk_sites_full.csv")
 
 # 2. Process all site data
 process_site_data <- function(site) {
@@ -51,7 +50,7 @@ process_site_data <- function(site) {
 }
 
 # 3. Get list of all sites and process them
-all_sites <- unique(site_info$sitename)
+all_sites <- unique(sites_all$sitename)
 all_annual_data <- map_dfr(all_sites, process_site_data, .progress = TRUE)
 
 # 4. Calculate whole-period averages for each site
