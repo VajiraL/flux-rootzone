@@ -9,18 +9,18 @@ site_info <- read_csv("data/fdk_site_info.csv")
 site_sequence <- read_csv("data/fdk_site_fullyearsequence.csv")
 
 # 1. Define Priestley-Taylor function
-calculate_pet <- function(net_rad, tavg, pressure) {
+calculate_pet <- function(net_rad, tavg, pressure, gr_heatflux = 0) {
   # Constants
   PT_constant <- 1.26  # Priestley-Taylor coefficient 1.26 for saturated/wet conditions. Lower for humid conditions and higher for arid conditions.
   latent_heat_vaporization <- 2.45  # MJ kg-1
   psychrometric_constant <- 0.066  # kPa °C-1
 
   # Saturation vapor pressure (es) and slope of vapor pressure curve (Δ)
-  es <- 0.6108 * exp((17.27 * tavg) / (tavg + 237.3))
+  es <- 0.6108 * exp((17.27 * tavg) / (tavg + 237.3)) # tavg in °C
   delta <- (4098 * es) / ((tavg + 237.3)^2)
 
   # Convert net radiation to MJ m-2 day-1 (assuming input is W m-2)
-  Rn_MJ <- net_rad * 0.0864  # W m-2 to MJ m-2 day-1
+  Rn_MJ <- (net_rad - gr_heatflux) * 0.0864  # W m-2 to MJ m-2 day-1
 
   # Priestley-Taylor PET (mm/day)
   pet <- (PT_constant * (delta / (delta + psychrometric_constant)) * Rn_MJ) / latent_heat_vaporization
@@ -46,8 +46,7 @@ process_site_data <- function(site) {
       date = as.Date(TIMESTAMP),
       year = year(date),
       pet = calculate_pet(NETRAD, TA_F_MDS, PA),
-      # Convert units if necessary (example - adjust based on your data)
-      precip = P_F,  # mm/day
+      # unit conversions
       et = LE_F_MDS / 28.4  # Convert W m-2 to mm/day (1 W m-2 ≈ 0.035 mm/day)
     )
 
