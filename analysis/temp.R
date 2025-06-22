@@ -8,7 +8,7 @@ library(ggthemes)  # For nice plot themes
 # 1. Load and prepare data ---------------------------------------------------
 # Assuming you've loaded the daily data for a site (DD files)
 # Example for one site (modify path as needed)
-site_data <- read_csv("path_to_data/FLX_AU-Rob_FLUXDATAKIT_FULLSET_DD_2014_2017_2-3.csv",
+site_data <- read_csv("D:/src/flux-rootzone/data/fdk_csv/FLX_SE-Deg_FLUXDATAKIT_FULLSET_DD_2001_2020_2-3.csv",
                      na = c("NA", "-9999"))
 
 # Convert TIMESTAMP to Date format
@@ -16,15 +16,15 @@ site_data <- site_data %>%
   mutate(TIMESTAMP = as.Date(TIMESTAMP, format = "%m/%d/%Y"))
 
 # 2. Data Gap Visualization -------------------------------------------------
-plot_data_gaps <- function(data, var_name = "NEE_VUT_REF", 
-                          site_name = "AU-Rob") {
+plot_data_gaps <- function(data, var_name = "NEE_VUT_REF",
+                          site_name = "SE-Deg") {
   # Create a binary variable: 1 = data present, NA = missing
   gap_data <- data %>%
     mutate(data_present = ifelse(is.na(!!sym(var_name)), NA, 1))
-  
+
   ggplot(gap_data, aes(x = TIMESTAMP, y = 1)) +
     geom_tile(aes(fill = !is.na(data_present)), width = 1, height = 0.1) +
-    scale_fill_manual(values = c("red", "darkgreen"), 
+    scale_fill_manual(values = c("red", "darkgreen"),
                      labels = c("Missing", "Present"),
                      name = "Data Status") +
     labs(title = paste("Data Availability for", var_name, "at", site_name),
@@ -36,29 +36,28 @@ plot_data_gaps <- function(data, var_name = "NEE_VUT_REF",
 }
 
 # Example usage for different variables
-gpp_gap_plot <- plot_data_gaps(site_data, "GPP_NT_VUT_REF")
-le_gap_plot <- plot_data_gaps(site_data, "LE_F_MDS")
-precip_gap_plot <- plot_data_gaps(site_data, "P_F")
+ustar_gap_plot <- plot_data_gaps(site_data, "USTAR")
+le_gap_plot <- plot_data_gaps(site_data, "NETRAD")
+precip_gap_plot <- plot_data_gaps(site_data, "SW_OUT")
 
 # Combine plots
-(gpp_gap_plot / le_gap_plot / precip_gap_plot) + 
-  plot_annotation(title = "Data Gap Analysis for AU-Rob")
+(ustar_gap_plot / le_gap_plot / precip_gap_plot) +
+  plot_annotation(title = "Data Gap Analysis for SE-Deg")
 
 # 3. QC Flag Analysis ------------------------------------------------------
-plot_qc_flags <- function(data, var_name = "NEE_VUT_REF", 
+plot_qc_flags <- function(data, var_name = "NEE_VUT_REF",
                          qc_name = "NEE_VUT_REF_QC",
-                         site_name = "AU-Rob") {
-  
+                         site_name = "SE-Deg") {
+
   qc_data <- data %>%
     select(TIMESTAMP, value = !!sym(var_name), qc = !!sym(qc_name)) %>%
     mutate(qc_category = case_when(
       is.na(qc) ~ "Missing",
-      qc == 0 ~ "Highest quality",
-      qc == 1 ~ "Medium quality",
-      qc == 2 ~ "Low quality",
-      TRUE ~ "Other"
+      qc > 0.75 ~ "High quality",
+      qc > 0.25 ~ "Medium quality",
+      TRUE ~ "Low quality"
     ))
-  
+
   # Plot QC distribution
   qc_dist <- ggplot(qc_data, aes(x = qc_category, fill = qc_category)) +
     geom_bar() +
@@ -67,7 +66,7 @@ plot_qc_flags <- function(data, var_name = "NEE_VUT_REF",
          x = "Quality Category", y = "Count") +
     theme_minimal() +
     theme(axis.text.x = element_text(angle = 45, hjust = 1))
-  
+
   # Plot time series with QC
   ts_plot <- ggplot(qc_data, aes(x = TIMESTAMP, y = value, color = qc_category)) +
     geom_point(size = 1, alpha = 0.7) +
@@ -75,9 +74,9 @@ plot_qc_flags <- function(data, var_name = "NEE_VUT_REF",
     labs(title = paste("Time Series with QC Flags for", var_name),
          x = "Date", y = var_name) +
     theme_minimal()
-  
+
   # Combine plots
-  qc_dist / ts_plot + 
+  qc_dist / ts_plot +
     plot_annotation(title = paste("QC Analysis for", var_name, "at", site_name))
 }
 
@@ -86,10 +85,10 @@ plot_qc_flags(site_data, "GPP_NT_VUT_REF", "NEE_VUT_REF_QC")
 plot_qc_flags(site_data, "LE_F_MDS", "LE_F_MDS_QC")
 
 # 4. Comprehensive Data Quality Summary ------------------------------------
-create_quality_summary <- function(data, site_name = "AU-Rob") {
+create_quality_summary <- function(data, site_name = "SE-Deg") {
   # Calculate missing data percentage for key variables
   key_vars <- c("GPP_NT_VUT_REF", "LE_F_MDS", "P_F", "TA_F_MDS", "VPD_F_MDS")
-  
+
   missing_summary <- map_dfr(key_vars, ~ {
     tibble(
       variable = .x,
@@ -98,10 +97,10 @@ create_quality_summary <- function(data, site_name = "AU-Rob") {
       missing_pct = round(mean(is.na(data[[.x]])) * 100, 1)
     )
   })
-  
+
   # Calculate mean QC scores
   qc_vars <- c("NEE_VUT_REF_QC", "LE_F_MDS_QC", "TA_F_MDS_QC")
-  
+
   qc_summary <- map_dfr(qc_vars, ~ {
     tibble(
       variable = str_remove(.x, "_QC"),
@@ -109,13 +108,13 @@ create_quality_summary <- function(data, site_name = "AU-Rob") {
       good_qc_pct = round(mean(data[[.x]] == 0, na.rm = TRUE) * 100, 1)
     )
   })
-  
+
   # Combine summaries
   full_summary <- missing_summary %>%
     left_join(qc_summary, by = "variable") %>%
     mutate(site = site_name) %>%
     select(site, everything())
-  
+
   return(full_summary)
 }
 
@@ -127,16 +126,16 @@ print(quality_summary)
 # (Assuming you've loaded data for multiple sites)
 # Example for 3 sites
 site_list <- list(
-  "AR-SLu" = read_csv("path_to_AR-SLu_data.csv"),
-  "AU-Rob" = site_data, # from above
-  "AT-Neu" = read_csv("path_to_AT-Neu_data.csv")
+  "US-Wkg" = read_csv("D:/src/flux-rootzone/data/fdk_csv/FLX_US-Wkg_FLUXDATAKIT_FULLSET_DD_2004_2021_2-3.csv"),
+  "SE-Deg" = site_data, # from above
+  "SE-Svb" = read_csv("D:/src/flux-rootzone/data/fdk_csv/FLX_SE-Svb_FLUXDATAKIT_FULLSET_DD_2014_2020_2-3.csv")
 )
 
 # Create gap analysis for all sites
 gap_plots <- map(names(site_list), ~ {
-  plot_data_gaps(site_list[[.x]], "GPP_NT_VUT_REF", .x)
+  plot_data_gaps(site_list[[.x]], "NETRAD", .x)
 })
 
 # Combine plots
-wrap_plots(gap_plots) + 
+wrap_plots(gap_plots, ncol = 1) +
   plot_annotation(title = "GPP Data Availability Across Sites")
