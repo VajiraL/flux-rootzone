@@ -33,7 +33,9 @@ Measure exchange of $CO_2$, water vapour and energy between atmosphere and land 
 ## What I did:
 - Obtain a compiled dataset of corrected flux data from multiple networks
 - Check data coverage and quality
-- 
+- Inspect for missing data and gap-fill
+- Theory-based computations and plots
+- Time series and resilience analyses
 
 ---
 ## Data
