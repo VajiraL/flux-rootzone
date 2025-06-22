@@ -174,7 +174,8 @@ For the site **FI-Var** in Finnish Lapland during 2016-2020
 
 # Main learnings
 
-- Transparent quality assessment
-- Some useful R packages like `purr`, `mice`
-- Custom functions and packages in R
+- transparent quality assessment
+- some useful R packages like `purr`, `mice`
+- custom functions and packages in R
 - R just works (mostly)
+- in `git` we trust
