@@ -16,13 +16,12 @@ h1 {
 }
 </style>
 
-### **Data Science for Sustainable Development**
+### Data Science for Sustainable Development
 
-Markdown Presentation Ecosystem
+# Ecosystem-water interactions at Flux sites
 
----
-<!-- _class: lead -->
-# 1. Ecosystem-water interactions at Flux sites
+Vajira Lasantha
+
 
 ---
 ## Flux towers
@@ -66,7 +65,31 @@ Check for missing data in key variables.
 
 ---
 
+<style scoped>
+p { text-align: center; }
+</style>
+
+## A closer look at individual sites
+Example: **SE-Deg** near Umea, Sweden
+![bg left:25%](SE-Deg.JPG)
+![w:550](data-gap-SE-Deg.png)
+
 ---
+
+## Fancy gap filling tools !
+<style scoped>
+p { text-align: center; }
+</style>
+![w:850](gap-fill-netrad.png)
+
+
+---
+## QC flags
+
+![w:550](QC-SE-Deg-1.png) ![w:550](QC-SE-Deg-2.png)
+
+---
+
 ## Mapping the sites in Budykyo space
 Budyko Curve describes the theoretical energy
 and water limits on the **catchment** water balance. It depicts the expected partitioning of P into ET and Q.
@@ -115,31 +138,41 @@ Root zone storage capacity
 ![bg right:70% 95%](budyko_whole_period_whc.png)
 
 ---
-<!-- _class: lead -->
-# work in progress !
+
 ![bg 65%](budyko_annual_trajectories.png)
+
+---
+<!-- _class: lead -->
+
+![bg 45%](baby-cow.jpg)
+
+---
+
+## Time Series Analysis
+<style scoped>
+p { text-align: center; }
+</style>
+![w:800](ts-lai-netrad-SE-Deg.png)
+
+---
+
+## Time Series Analysis
+<style scoped>
+p { text-align: center; }
+</style>
+![w:700](ts-pre-et-SE-Deg.png)
+
+---
+## Resilience Indicators
+
+For the site **FI-Var** in Finnish Lapland during 2016-2020
+![bg right:60%](res-1.png)
 
 ---
 
 # Main learnings
 
 - Transparent quality assessment
-
-```markdown
-
-```
-
----
-Example code
-
-```markdown
-# Slide 1
-
-foobar
-
----
-
-# Slide 2
-
-foobar
-```
+- Some useful R packages like `purr`, `mice`
+- Custom functions and packages in R
+- R just works (mostly)
