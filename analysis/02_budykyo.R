@@ -12,7 +12,7 @@ site_info <- read_csv("data/fdk_sites_full.csv")
 # 2. Process all site data
 process_site_data <- function(site) {
   # Find the DD file for this site
-  dd_file <- list.files(file.path(getwd(),'data/fdk_csv'),
+  dd_file <- list.files(file.path(getwd(),'/mnt/data/vajira/fluxDataKit/fdk_csv'),
                         pattern = paste0(site, ".*DD.*\\.csv"),
                         full.names = TRUE)
 
@@ -28,7 +28,8 @@ process_site_data <- function(site) {
       year = year(date),
       pet = calculate_pet(method = "priestley_taylor", NETRAD, TA_F_MDS, PA),
       # unit conversions
-      et = LE_F_MDS / 28.4  # Convert W m-2 to mm/day (1 W m-2 ≈ 0.035 mm/day)
+      et = LE_F_MDS # Convert W m-2 to mm/day (1 W m-2 ≈ 0.035 mm/day)
+      precip = P_F # Precipitation in mm/day
     )
 
   # Calculate annual sums
